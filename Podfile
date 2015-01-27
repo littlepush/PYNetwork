@@ -3,8 +3,8 @@
 
 target 'PYNetwork' do
 
-pod 'PYCore', '~> 0.9.1'
-pod 'PYData', '~> 0.9.1'
+pod 'PYCore', '~> 0.9'
+pod 'PYData', '~> 0.9'
 
 end
 
