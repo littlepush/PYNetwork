@@ -48,6 +48,7 @@
  */
 
 #import "PYDomainSwitcher.h"
+#import <PYCore/PYCore.h>
 
 static NSArray *__gDS_defaultDomains = nil;
 static NSString *__gDS_defaultProtocol = nil;

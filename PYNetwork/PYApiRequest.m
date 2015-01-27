@@ -48,6 +48,7 @@
 
 #import "PYApiRequest.h"
 #import "PYDomainSwitcher.h"
+#import <PYCore/PYCore.h>
 
 @interface PYApiRequest (Internal)
 

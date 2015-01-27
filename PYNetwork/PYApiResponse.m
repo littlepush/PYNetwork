@@ -47,6 +47,7 @@
  */
 
 #import "PYApiResponse.h"
+#import <PYCore/PYCore.h>
 
 @implementation PYApiResponse
 
