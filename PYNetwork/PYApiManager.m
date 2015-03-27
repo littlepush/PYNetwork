@@ -105,7 +105,6 @@ PYSingletonDefaultImplementation
         @"No such API Response Object",
         @"Failed to create response object",
         @"Reach max retry times",
-        @"Invalidate HTTP status code, except 200-399",
         @"Failed to parse the response body"
     };
     if ( code == PYApiSuccess ) return _errorMsg[0];
@@ -194,7 +193,11 @@ PYSingletonDefaultImplementation
                 if ( _isDebug ) {
                     ALog(@"Request Failed: %d", (int)_response.statusCode);
                 }
-                if ( failed ) failed( [PYApiManager apiErrorWithCode:PYApiErrorInvalidateHttpStatus] );
+                if ( failed ) failed( [self
+                                       errorWithCode:(int)_response.statusCode
+                                       message:[[NSString alloc]
+                                                initWithData:_data
+                                                encoding:NSUTF8StringEncoding]] );
                 END_MAINTHREAD_INVOKE
                 break;
             }

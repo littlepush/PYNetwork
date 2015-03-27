@@ -57,8 +57,7 @@ typedef NS_ENUM(NSInteger, PYApiErrorCode){
     PYApiErrorInvalidateResponseClass,
     PYApiErrorFailedToCreateResponseObject,
     PYApiErrorReachMaxRetryTimes,
-    PYApiErrorInvalidateHttpStatus,
-    PYApiErrorFailedToParseResponse
+    PYApiErrorFailedToParseResponse,
 };
 
 // Pre-define
