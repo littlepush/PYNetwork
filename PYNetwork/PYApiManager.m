@@ -200,6 +200,25 @@ PYSingletonDefaultImplementation
                                                 encoding:NSUTF8StringEncoding]] );
                 END_MAINTHREAD_INVOKE
                 break;
+            } else if ( _response.statusCode == 301 || _response.statusCode == 302 ) {
+                NSDictionary *_hf = [_response allHeaderFields];
+                NSString *_location = nil;
+                for ( NSString *_key in _hf ) {
+                    if ( [[_key lowercaseString] isEqualToString:@"location"] ) {
+                        _location = [_hf objectForKey:_key];
+                        break;
+                    }
+                }
+                if ( [_location length] == 0 ) {
+                    BEGIN_MAINTHREAD_INVOKE
+                    if ( failed ) failed( [self
+                                           errorWithCode:(int)_response.statusCode
+                                           message:@"No validate location to redirect."]);
+                    END_MAINTHREAD_INVOKE
+                    break;
+                }
+                // Re-generate Request Object
+                
             }
             
             // Update modified time
