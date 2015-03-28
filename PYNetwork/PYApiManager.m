@@ -167,59 +167,97 @@ PYSingletonDefaultImplementation
                    forHTTPHeaderField:@"Last-Modified-Since"];
                 }
             }
-            if ( _isDebug ) {
-                BEGIN_MAINTHREAD_INVOKE
-                if ( [[_urlReq.HTTPMethod lowercaseString] isEqualToString:@"post"] ) {
-                    ALog(@"{\nRequest URL: %@\nMethod: POST\nBody: %@\n}",
-                         _urlReq.URL.absoluteString,
-                         _urlReq.HTTPBody);
-                } else {
-                    ALog(@"{\nRequest URL: %@\nMethod: GET\n}",
-                         _urlReq.URL.absoluteString);
-                }
-                END_MAINTHREAD_INVOKE
-            }
+            
             NSError *_error;
             NSHTTPURLResponse *_response;
-            NSData *_data = [NSURLConnection
-                             sendSynchronousRequest:_urlReq
-                             returningResponse:&_response
-                             error:&_error];
-            if ( _error ) { continue; }
-            
-            if ( _response.statusCode >= 400 ) {
-                // Server error
-                BEGIN_MAINTHREAD_INVOKE
+            NSData *_data = nil;
+            BOOL _shouldTryNextDomain = NO;
+            BOOL _onErrorOccured = NO;
+            for ( ; ; ) {
                 if ( _isDebug ) {
-                    ALog(@"Request Failed: %d", (int)_response.statusCode);
-                }
-                if ( failed ) failed( [self
-                                       errorWithCode:(int)_response.statusCode
-                                       message:[[NSString alloc]
-                                                initWithData:_data
-                                                encoding:NSUTF8StringEncoding]] );
-                END_MAINTHREAD_INVOKE
-                break;
-            } else if ( _response.statusCode == 301 || _response.statusCode == 302 ) {
-                NSDictionary *_hf = [_response allHeaderFields];
-                NSString *_location = nil;
-                for ( NSString *_key in _hf ) {
-                    if ( [[_key lowercaseString] isEqualToString:@"location"] ) {
-                        _location = [_hf objectForKey:_key];
-                        break;
-                    }
-                }
-                if ( [_location length] == 0 ) {
                     BEGIN_MAINTHREAD_INVOKE
+                    if ( [[_urlReq.HTTPMethod lowercaseString] isEqualToString:@"post"] ) {
+                        ALog(@"{\nRequest URL: %@\nMethod: POST\nBody: %@\n}",
+                             _urlReq.URL.absoluteString,
+                             _urlReq.HTTPBody);
+                    } else {
+                        ALog(@"{\nRequest URL: %@\nMethod: GET\n}",
+                             _urlReq.URL.absoluteString);
+                    }
+                    END_MAINTHREAD_INVOKE
+                }
+                _data = [NSURLConnection
+                         sendSynchronousRequest:_urlReq
+                         returningResponse:&_response
+                         error:&_error];
+                if ( _error ) { _shouldTryNextDomain = YES; break; }
+                
+                if ( _response.statusCode >= 400 ) {
+                    // Server error
+                    BEGIN_MAINTHREAD_INVOKE
+                    if ( _isDebug ) {
+                        ALog(@"Request Failed: %d", (int)_response.statusCode);
+                    }
                     if ( failed ) failed( [self
                                            errorWithCode:(int)_response.statusCode
-                                           message:@"No validate location to redirect."]);
+                                           message:[[NSString alloc]
+                                                    initWithData:_data
+                                                    encoding:NSUTF8StringEncoding]] );
                     END_MAINTHREAD_INVOKE
+                    _onErrorOccured = YES;
+                    break;
+                } else if ( _response.statusCode == 301 || _response.statusCode == 302 ) {
+                    NSDictionary *_hf = [_response allHeaderFields];
+                    NSString *_location = nil;
+                    for ( NSString *_key in _hf ) {
+                        if ( [[_key lowercaseString] isEqualToString:@"location"] ) {
+                            _location = [_hf objectForKey:_key];
+                            break;
+                        }
+                    }
+                    if ( [_location length] == 0 ) {
+                        BEGIN_MAINTHREAD_INVOKE
+                        if ( failed ) failed( [self
+                                               errorWithCode:(int)_response.statusCode
+                                               message:@"No validate location to redirect."]);
+                        END_MAINTHREAD_INVOKE
+                        _onErrorOccured = YES;
+                        break;
+                    }
+                    // Re-generate Request Object
+                    NSString *_absUrlString = [_req.requestURLString copy];
+                    // Get parameters
+                    NSArray *_paramPart = [_absUrlString componentsSeparatedByString:@"?"];
+                    NSString *_parameterString = @"";
+                    if ( [_paramPart count] == 2 ) {
+                        _parameterString = [NSString stringWithFormat:@"?%@", [_paramPart objectAtIndex:1]];
+                    }
+                    
+                    NSString *_newUrl = @"";
+                    if ( [_location rangeOfString:@"://"].location != NSNotFound ) {
+                        _newUrl = [_location stringByAppendingString:_parameterString];
+                    } else {
+                        NSString *_temp = _paramPart[0];
+                        NSRange _protocolRange = [_temp rangeOfString:@"://"];
+                        NSRange _slashRange = [_temp
+                                               rangeOfString:@"/"
+                                               options:NSCaseInsensitiveSearch
+                                               range:NSMakeRange(_protocolRange.location + _protocolRange.length,
+                                                                 _temp.length - _protocolRange.location)];
+                        NSString *_protocolAndDomain = [_temp substringToIndex:_slashRange.location];
+                        _newUrl = [_protocolAndDomain stringByAppendingFormat:@"%@%@", _location, _parameterString];
+                    }
+                    DUMPObj(_newUrl);
+                    [_urlReq setURL:[NSURL URLWithString:_newUrl]];
+                    _shouldTryNextDomain = YES;
+                } else {
+                    // Correct response
                     break;
                 }
-                // Re-generate Request Object
-                
             }
+            
+            if ( _shouldTryNextDomain == YES ) continue;
+            if ( _onErrorOccured == YES ) break;
             
             // Update modified time
             NSString *_lastModifiedDateString = @"";

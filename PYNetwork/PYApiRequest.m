@@ -50,7 +50,10 @@
 #import "PYDomainSwitcher.h"
 #import <PYCore/PYCore.h>
 
-@interface PYApiRequest (Internal)
+@interface PYApiRequest ()
+{
+    NSString        *_requestUrl;
+}
 
 // Generate the request url
 - (NSString *)_generateRequestUrl;
@@ -58,6 +61,9 @@
 @end
 
 @implementation PYApiRequest
+
+@dynamic requestURLString;
+- (NSString *)requestURLString { return _requestUrl; }
 
 + (NSString *)requestIdentifyWithParameter:(NSDictionary *)parameters
 {
@@ -99,7 +105,7 @@
 // specified domain.
 - (NSMutableURLRequest *)generateRequest
 {
-    NSString *_requestUrl;
+    // NSString *_requestUrl;
     if ( _isNeedDomainSwitcher ) {
         if ( _domainSwitcher.isAvailable == NO ) return nil;
     }

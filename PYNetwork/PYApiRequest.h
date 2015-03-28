@@ -102,6 +102,11 @@
 @property (nonatomic, readonly) NSUInteger              retriedTimes;
 
 /*!
+ The final request URL
+ */
+@property (nonatomic, readonly) NSString                *requestURLString;
+
+/*!
  HTTP 304, default is YES if the same request has been invoked
  The request manager will maintain a cache to log all invocation data.
  */
