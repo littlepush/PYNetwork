@@ -144,6 +144,35 @@
  Overwrite [PYApiRequest generateRequest], set @"POST" as HTTP Method
  */
 @interface PYApiPostRequest : PYApiRequest
+
+/*!
+ Utility method, invoke this method before setting the post data
+ when the Content-Type is multipart/form-data. The method will initialize
+ the boundary string and add 'Content-Type' to the request
+ */
+- (void)beginOfSettingPostData:(NSMutableURLRequest *)req;
+
+/*!
+ Utility method, invoke this method at the end of the setting of
+ post data. This method will close the data body and set 'Content-Length'
+ */
+- (void)endOfSettingPostData:(NSMutableURLRequest *)req;
+
+/*!
+ Utility method, add image file to the post data
+ */
+- (void)addPostImage:(id)image forKey:(NSString *)key;
+
+/*!
+ Utility method, add value for specified key to the post data
+ */
+- (void)addPostValue:(NSString *)value forKey:(NSString *)key;
+
+/*!
+ Utility method, add normal file to the post data
+ */
+- (void)addPostFile:(NSString *)filename forKey:(NSString *)key;
+
 @end
 
 // @littlepush

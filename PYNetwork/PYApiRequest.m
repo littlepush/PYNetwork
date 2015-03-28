@@ -49,6 +49,7 @@
 #import "PYApiRequest.h"
 #import "PYDomainSwitcher.h"
 #import <PYCore/PYCore.h>
+#import <UIKit/UIKit.h>
 
 @interface PYApiRequest ()
 {
@@ -176,6 +177,14 @@
 
 @end
 
+
+@interface PYApiPostRequest ()
+{
+    NSMutableData       *_body;
+    NSString            *_boundary;
+}
+@end
+
 @implementation PYApiPostRequest
 
 - (NSMutableURLRequest *)generateRequest
@@ -184,6 +193,62 @@
     if ( _req == nil ) return nil;
     [_req setHTTPMethod:@"POST"];
     return _req;
+}
+
+- (void)beginOfSettingPostData:(NSMutableURLRequest *)req
+{
+    _boundary = [PYTIMESTAMP copy];
+    [req
+     addValue:[NSString stringWithFormat:@"multipart/form-data; boundary=%@", _boundary]
+     forHTTPHeaderField:@"Content-Type"];
+    
+    _body = [NSMutableData data];
+}
+
+- (void)endOfSettingPostData:(NSMutableURLRequest *)req
+{
+    [_body appendData:[[NSString stringWithFormat:@"--%@--\r\n", _boundary]
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    [req setHTTPBody:_body];
+    [req addValue:PYIntToString(_body.length) forHTTPHeaderField:@"Content-Length"];
+}
+
+- (void)addPostFile:(NSString *)filename forKey:(NSString *)key
+{
+    [_body appendData:[[NSString stringWithFormat:@"--%@\r\n", _boundary]
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    // File
+    [_body appendData:[[NSString
+                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"file\"\r\n", key]
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    [_body appendData:[@"Content-Type: application/octet-stream\r\nContent-Transfer-Encoding: binary\r\n\r\n"
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    NSData *_fileData = [NSData dataWithContentsOfFile:filename];
+    [_body appendData:_fileData];
+    [_body appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
+- (void)addPostImage:(id)image forKey:(NSString *)key
+{
+    [_body appendData:[[NSString stringWithFormat:@"--%@\r\n", _boundary]
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    // Image
+    [_body appendData:[[NSString
+                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"file\"\r\n", key]
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    [_body appendData:[@"Content-Type: image/jpeg\r\nContent-Transfer-Encoding: binary\r\n\r\n"
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    NSData *_imageData = UIImageJPEGRepresentation(image, 1.0);
+    [_body appendData:_imageData];
+    [_body appendData:[@"\r\n" dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
+- (void)addPostValue:(NSString *)value forKey:(NSString *)key
+{
+    [_body appendData:[[NSString stringWithFormat:@"--%@\r\n", _boundary]
+                       dataUsingEncoding:NSUTF8StringEncoding]];
+    [_body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n",
+                        key, value] dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
 @end
