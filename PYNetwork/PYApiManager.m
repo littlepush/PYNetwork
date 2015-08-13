@@ -176,13 +176,22 @@ PYSingletonDefaultImplementation
             for ( ; ; ) {
                 if ( _isDebug ) {
                     BEGIN_MAINTHREAD_INVOKE
-                    if ( [[_urlReq.HTTPMethod lowercaseString] isEqualToString:@"post"] ) {
-                        ALog(@"{\nRequest URL: %@\nMethod: POST\nBody: %@\n}",
+                    NSString *_httpMethod = [_urlReq.HTTPMethod lowercaseString];
+                    NSString *_contentType = [[[_urlReq valueForHTTPHeaderField:@"Content-Type"]
+                                               lowercaseString] substringToIndex:9];
+                    BOOL _displayBodyString = ([_contentType isEqualToString:@"multiple"]);
+                    if ( [_httpMethod isEqualToString:@"post"] || [_httpMethod isEqualToString:@"put"] ) {
+                        ALog(@"{\nRequest URL: %@\nMethod: %@\nBody: %@\n}",
                              _urlReq.URL.absoluteString,
-                             _urlReq.HTTPBody);
+                             _urlReq.HTTPMethod,
+                             (_displayBodyString ?
+                              [[NSString alloc] initWithData:_urlReq.HTTPBody encoding:NSUTF8StringEncoding] :
+                              _urlReq.HTTPBody)
+                             );
                     } else {
-                        ALog(@"{\nRequest URL: %@\nMethod: GET\n}",
-                             _urlReq.URL.absoluteString);
+                        ALog(@"{\nRequest URL: %@\nMethod: %@\n}",
+                             _urlReq.URL.absoluteString,
+                             _urlReq.HTTPMethod);
                     }
                     END_MAINTHREAD_INVOKE
                 }
