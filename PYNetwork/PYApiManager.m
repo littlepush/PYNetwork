@@ -179,7 +179,7 @@ PYSingletonDefaultImplementation
                     NSString *_httpMethod = [_urlReq.HTTPMethod lowercaseString];
                     NSString *_contentType = [[[_urlReq valueForHTTPHeaderField:@"Content-Type"]
                                                lowercaseString] substringToIndex:9];
-                    BOOL _displayBodyString = ([_contentType isEqualToString:@"multiple"]);
+                    BOOL _displayBodyString = (![_contentType isEqualToString:@"multiple"]);
                     if ( [_httpMethod isEqualToString:@"post"] || [_httpMethod isEqualToString:@"put"] ) {
                         ALog(@"{\nRequest URL: %@\nMethod: %@\nBody: %@\n}",
                              _urlReq.URL.absoluteString,
