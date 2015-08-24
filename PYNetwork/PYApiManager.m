@@ -150,12 +150,17 @@ PYSingletonDefaultImplementation
     
     NSBlockOperation *_workingOperation = [NSBlockOperation blockOperationWithBlock:^{
         NSString *_requestIdentifier = [[_req class] requestIdentifyWithParameter:parameters];
+        NSError *_error = nil;
         do {
             NSMutableURLRequest *_urlReq = [_req generateRequest];
             if ( _urlReq == nil ) {
                 // Reach Max Retry Times.
+                if ( _error == nil ) {
+                    _error = [PYApiManager apiErrorWithCode:PYApiErrorReachMaxRetryTimes];
+                }
                 BEGIN_MAINTHREAD_INVOKE
-                if ( failed ) failed( [PYApiManager apiErrorWithCode:PYApiErrorReachMaxRetryTimes] );
+                // Return the last error object
+                if ( failed ) failed( _error );
                 END_MAINTHREAD_INVOKE
                 break;
             }
@@ -168,7 +173,6 @@ PYSingletonDefaultImplementation
                 }
             }
             
-            NSError *_error;
             NSHTTPURLResponse *_response;
             NSData *_data = nil;
             BOOL _shouldTryNextDomain = NO;
