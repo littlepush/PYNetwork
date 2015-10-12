@@ -127,24 +127,6 @@
  */
 - (void)initializeUrlSchema;
 
-@end
-
-/*!
- We do not support to create the request object by [alloc] & [init].
- */
-@interface PYApiRequest (Private)
-
-// Not available
-- (id)init;
-
-@end
-
-/*!
- Method: POST
- Overwrite [PYApiRequest generateRequest], set @"POST" as HTTP Method
- */
-@interface PYApiPostRequest : PYApiRequest
-
 /*!
  Utility method, invoke this method before setting the post data
  when the Content-Type is multipart/form-data. The method will initialize
@@ -172,6 +154,24 @@
  Utility method, add normal file to the post data
  */
 - (void)addPostFile:(NSString *)filename forKey:(NSString *)key;
+
+@end
+
+/*!
+ We do not support to create the request object by [alloc] & [init].
+ */
+@interface PYApiRequest (Private)
+
+// Not available
+- (id)init;
+
+@end
+
+/*!
+ Method: POST
+ Overwrite [PYApiRequest generateRequest], set @"POST" as HTTP Method
+ */
+@interface PYApiPostRequest : PYApiRequest
 
 @end
 

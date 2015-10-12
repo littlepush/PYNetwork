@@ -53,7 +53,9 @@
 
 @interface PYApiRequest ()
 {
-    NSString        *_requestUrl;
+    NSString            *_requestUrl;
+    NSMutableData       *_body;
+    NSString            *_boundary;
 }
 
 // Generate the request url
@@ -151,50 +153,6 @@
     return _url;
 }
 
-@end
-
-@implementation PYApiRequest (Private)
-
-- (id)init
-{
-    self = [super init];
-    if ( self ) {
-        self.containsModifiedSinceFlag = YES;
-        [self initializeDomainSwitcher];
-        [self initializeUrlSchema];
-        _isNeedDomainSwitcher = ([_urlString rangeOfString:@"://"].location == NSNotFound);
-        _retriedTimes = 0;
-        if ( _domainSwitcher == nil || [_domainSwitcher.domainList count] == 0 ) {
-            _minimalRetryTimes = 1;
-            _maximalRetryTimes = 1;
-        } else {
-            _minimalRetryTimes = [_domainSwitcher.domainList count];
-            _maximalRetryTimes = _minimalRetryTimes;
-        }
-    }
-    return self;
-}
-
-@end
-
-
-@interface PYApiPostRequest ()
-{
-    NSMutableData       *_body;
-    NSString            *_boundary;
-}
-@end
-
-@implementation PYApiPostRequest
-
-- (NSMutableURLRequest *)generateRequest
-{
-    NSMutableURLRequest *_req = [super generateRequest];
-    if ( _req == nil ) return nil;
-    [_req setHTTPMethod:@"POST"];
-    return _req;
-}
-
 - (void)beginOfSettingPostData:(NSMutableURLRequest *)req
 {
     _boundary = [PYTIMESTAMP copy];
@@ -249,6 +207,42 @@
                        dataUsingEncoding:NSUTF8StringEncoding]];
     [_body appendData:[[NSString stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"\r\n\r\n%@\r\n",
                         key, value] dataUsingEncoding:NSUTF8StringEncoding]];
+}
+
+@end
+
+@implementation PYApiRequest (Private)
+
+- (id)init
+{
+    self = [super init];
+    if ( self ) {
+        self.containsModifiedSinceFlag = YES;
+        [self initializeDomainSwitcher];
+        [self initializeUrlSchema];
+        _isNeedDomainSwitcher = ([_urlString rangeOfString:@"://"].location == NSNotFound);
+        _retriedTimes = 0;
+        if ( _domainSwitcher == nil || [_domainSwitcher.domainList count] == 0 ) {
+            _minimalRetryTimes = 1;
+            _maximalRetryTimes = 1;
+        } else {
+            _minimalRetryTimes = [_domainSwitcher.domainList count];
+            _maximalRetryTimes = _minimalRetryTimes;
+        }
+    }
+    return self;
+}
+
+@end
+
+@implementation PYApiPostRequest
+
+- (NSMutableURLRequest *)generateRequest
+{
+    NSMutableURLRequest *_req = [super generateRequest];
+    if ( _req == nil ) return nil;
+    [_req setHTTPMethod:@"POST"];
+    return _req;
 }
 
 @end
