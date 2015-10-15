@@ -177,7 +177,7 @@
                        dataUsingEncoding:NSUTF8StringEncoding]];
     // File
     [_body appendData:[[NSString
-                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"file\"\r\n", key]
+                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\n", key, filename]
                        dataUsingEncoding:NSUTF8StringEncoding]];
     [_body appendData:[@"Content-Type: application/octet-stream\r\nContent-Transfer-Encoding: binary\r\n\r\n"
                        dataUsingEncoding:NSUTF8StringEncoding]];
@@ -188,11 +188,16 @@
 
 - (void)addPostImage:(id)image forKey:(NSString *)key
 {
+    [self addPostImage:image forKey:key filename:@"image"];
+}
+
+- (void)addPostImage:(id)image forKey:(NSString *)key filename:(NSString *)filename
+{
     [_body appendData:[[NSString stringWithFormat:@"--%@\r\n", _boundary]
                        dataUsingEncoding:NSUTF8StringEncoding]];
     // Image
     [_body appendData:[[NSString
-                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"file\"\r\n", key]
+                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\n", key, filename]
                        dataUsingEncoding:NSUTF8StringEncoding]];
     [_body appendData:[@"Content-Type: image/jpeg\r\nContent-Transfer-Encoding: binary\r\n\r\n"
                        dataUsingEncoding:NSUTF8StringEncoding]];

@@ -146,6 +146,11 @@
 - (void)addPostImage:(id)image forKey:(NSString *)key;
 
 /*!
+ Utility method, add image file to the post data with specified filename.
+ */
+- (void)addPostImage:(id)image forKey:(NSString *)key filename:(NSString *)filename;
+
+/*!
  Utility method, add value for specified key to the post data
  */
 - (void)addPostValue:(NSString *)value forKey:(NSString *)key;
