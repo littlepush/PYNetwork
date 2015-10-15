@@ -100,6 +100,11 @@
     return _url;
 }
 
+- (NSString *)generateUrlString
+{
+    return [self _generateRequestUrl];
+}
+
 @synthesize retriedTimes = _retriedTimes;
 @synthesize maximalRetryTimes = _maximalRetryTimes;
 @synthesize minimalRetryTimes = _minimalRetryTimes;
@@ -113,7 +118,7 @@
         if ( _domainSwitcher.isAvailable == NO ) return nil;
     }
     if ( _retriedTimes >= _maximalRetryTimes ) return nil;
-    _requestUrl = [self _generateRequestUrl];
+    _requestUrl = [self generateUrlString];
     _retriedTimes += 1;
     if ( _isNeedDomainSwitcher ) {
         [_domainSwitcher next];

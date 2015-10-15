@@ -117,6 +117,11 @@
  */
 - (NSString *)formatUrl:(NSString *)url withParameters:(NSDictionary *)parameters;
 
+/*!
+ Generate URL String
+ */
+- (NSString *)generateUrlString;
+
 /*! 
  Should be overwrite by the sub-class
  */
