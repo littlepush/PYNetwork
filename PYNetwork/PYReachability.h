@@ -119,7 +119,7 @@ typedef NS_ENUM(NSInteger, PYNetworkStatus)
 
 /*!
  Test if current can connect to specified address.
- @param hostAddress: the socket address structure to peer
+ @param hostAddress the socket address structure to peer
  */
 + (instancetype)reachabilityWithAddress:(const struct sockaddr_in *)hostAddress;
 
