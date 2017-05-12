@@ -52,6 +52,12 @@
 static PYApiManager *_g_apiManager;
 static BOOL _isDebug = NO;
 
+@interface PYApiManager ()
+{
+    PYApiActionFailed       _defaultFailed;
+}
+@end
+
 @interface PYApiManager (Internal)
 // Singleton interface.
 + (instancetype)shared;
@@ -63,6 +69,9 @@ static BOOL _isDebug = NO;
 
 // Generate error object
 + (NSError *)apiErrorWithCode:(PYApiErrorCode)code;
+
+// To invoke default failed handler
++ (void)onRequestFailed:(NSError *)error;
 
 @end
 
@@ -80,6 +89,8 @@ PYSingletonDefaultImplementation
         
         // Initialize the api cache to store the request info.
         _apiCache = [PYGlobalDataCache gdcWithIdentify:@"com.ipy.network.apicache"];
+        
+        _defaultFailed = nil;
     }
     return self;
 }
@@ -114,6 +125,13 @@ PYSingletonDefaultImplementation
     return @"Unknow code";
 }
 
++ (void)defaultFailedHandler:(PYApiActionFailed)failed
+{
+    PYSingletonLock
+    [PYApiManager shared]->_defaultFailed = [failed copy];
+    PYSingletonUnLock
+}
+
 + (void)invokeApi:(NSString *)apiname
    withParameters:(NSDictionary *)parameters
            onInit:(PYApiActionInit)init
@@ -123,23 +141,31 @@ PYSingletonDefaultImplementation
     NSString *_requestClassName = [apiname stringByAppendingString:@"Request"];
     Class _requestClass = NSClassFromString(_requestClassName);
     if ( _requestClass == nil ) {
-        if ( failed ) failed( [PYApiManager apiErrorWithCode:PYApiErrorInvalidateRequestClass] );
+        NSError *_err = [PYApiManager apiErrorWithCode:PYApiErrorInvalidateRequestClass];
+        if ( failed ) failed( _err );
+        else [PYApiManager onRequestFailed:_err];
         return;
     }
     PYApiRequest *_req = [_requestClass requestWithParameters:parameters];
     if ( _req == nil ) {
-        if ( failed ) failed( [PYApiManager apiErrorWithCode:PYApiErrorFailedToCreateRequestObject] );
+        NSError *_err = [PYApiManager apiErrorWithCode:PYApiErrorFailedToCreateRequestObject];
+        if ( failed ) failed( _err );
+        else [PYApiManager onRequestFailed:_err];
         return;
     }
     NSString *_responseClassName = [apiname stringByAppendingString:@"Response"];
     Class _responseClass = NSClassFromString(_responseClassName);
     if ( _responseClassName == nil ) {
-        if ( failed ) failed( [PYApiManager apiErrorWithCode:PYApiErrorInvalidateResponseClass] );
+        NSError *_err = [PYApiManager apiErrorWithCode:PYApiErrorInvalidateResponseClass];
+        if ( failed ) failed( _err );
+        else [PYApiManager onRequestFailed:_err];
         return;
     }
     PYApiResponse *_resp = [_responseClass object];
     if ( _resp == nil ) {
-        if ( failed ) failed( [PYApiManager apiErrorWithCode:PYApiErrorFailedToCreateResponseObject] );
+        NSError *_err = [PYApiManager apiErrorWithCode:PYApiErrorFailedToCreateResponseObject];
+        if ( failed ) failed( _err );
+        else [PYApiManager onRequestFailed:_err];
         return;
     }
     
@@ -161,6 +187,7 @@ PYSingletonDefaultImplementation
                 BEGIN_MAINTHREAD_INVOKE
                 // Return the last error object
                 if ( failed ) failed( _error );
+                else [PYApiManager onRequestFailed:_error];
                 END_MAINTHREAD_INVOKE
                 break;
             }
@@ -211,11 +238,13 @@ PYSingletonDefaultImplementation
                     if ( _isDebug ) {
                         ALog(@"Request Failed: %d", (int)_response.statusCode);
                     }
-                    if ( failed ) failed( [self
-                                           errorWithCode:(int)_response.statusCode
-                                           message:[[NSString alloc]
-                                                    initWithData:_data
-                                                    encoding:NSUTF8StringEncoding]] );
+                    NSError* _err = [self
+                                     errorWithCode:(int)_response.statusCode
+                                     message:[[NSString alloc]
+                                              initWithData:_data
+                                              encoding:NSUTF8StringEncoding]];
+                    if ( failed ) failed( _err );
+                    else [PYApiManager onRequestFailed:_err];
                     END_MAINTHREAD_INVOKE
                     _onErrorOccured = YES;
                     break;
@@ -230,9 +259,11 @@ PYSingletonDefaultImplementation
                     }
                     if ( [_location length] == 0 ) {
                         BEGIN_MAINTHREAD_INVOKE
-                        if ( failed ) failed( [self
-                                               errorWithCode:(int)_response.statusCode
-                                               message:@"No validate location to redirect."]);
+                        NSError *_err = [self
+                                         errorWithCode:(int)_response.statusCode
+                                         message:@"No validate location to redirect."];
+                        if ( failed ) failed( _err );
+                        else [PYApiManager onRequestFailed:_err];
                         END_MAINTHREAD_INVOKE
                         _onErrorOccured = YES;
                         break;
@@ -311,6 +342,7 @@ PYSingletonDefaultImplementation
                 } else {
                     BEGIN_MAINTHREAD_INVOKE
                     if ( failed ) failed ( _resp.error );
+                    else [PYApiManager onRequestFailed:_resp.error];
                     END_MAINTHREAD_INVOKE
                 }
             } @catch ( NSException *ex ) {
@@ -352,6 +384,14 @@ PYSingletonDefaultImplementation
         _g_apiManager = [PYApiManager object];
     }
     return _g_apiManager;
+    PYSingletonUnLock
+}
+
++ (void)onRequestFailed:(NSError *)error
+{
+    PYSingletonLock
+    if ( [PYApiManager shared]->_defaultFailed == nil ) return;
+    [PYApiManager shared]->_defaultFailed(error);
     PYSingletonUnLock
 }
 

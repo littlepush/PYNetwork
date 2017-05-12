@@ -63,6 +63,10 @@ typedef NS_ENUM(NSInteger, PYApiErrorCode){
 // Pre-define
 @class PYGlobalDataCache;
 
+typedef void (^PYApiActionInit)(PYApiRequest *request);
+typedef void (^PYApiActionSuccess)(id response);
+typedef void (^PYApiActionFailed)(NSError *error);
+
 @interface PYApiManager : NSObject
 {
     // The async operation queue.
@@ -80,11 +84,10 @@ typedef NS_ENUM(NSInteger, PYApiErrorCode){
 // If enable the debug mode(which will output the request info)
 + (void)enableDebug:(BOOL)enable;
 
-@end
+// Set Default Error Handler
++ (void)defaultFailedHandler:(PYApiActionFailed)failed;
 
-typedef void (^PYApiActionInit)(PYApiRequest *request);
-typedef void (^PYApiActionSuccess)(id response);
-typedef void (^PYApiActionFailed)(NSError *error);
+@end
 
 @interface PYApiManager (Private)
 
