@@ -110,6 +110,8 @@ __VA_ARGS__                                                                 \
                                   onInit:(PYApiActionInit)init              \
                                onSuccess:(PYApiActionSuccess)success        \
                                 onFailed:(PYApiActionFailed)failed;         \
++ (void)invoke##api_name##WithParameters:(NSDictionary *)params             \
+                               onSuccess:(PYApiActionSuccess)success;       \
 @end
 
 #define PY_API(api_name, ...)                                               \
@@ -131,6 +133,12 @@ withParameters:params                                   \
         onInit:init                                     \
      onSuccess:success                                  \
       onFailed:failed];                                 \
+}                                                       \
++ (void)invoke##api_name##WithParameters:(NSDictionary *)params\
+                               onSuccess:(PYApiActionSuccess)success{\
+    [PYApiManager invokeApi:@#api_name                  \
+        withParameters:params onInit:nil                \
+        onSuccess:success onFailed:nil];                \
 }                                                       \
 @end
 #define PY_BEGIN_OVERWRITE_REQUEST(api_name)            \
