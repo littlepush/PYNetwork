@@ -51,6 +51,7 @@
 
 @implementation PYApiResponse
 
+@synthesize statusCode;
 @synthesize errorCode;
 @synthesize errorMessage;
 

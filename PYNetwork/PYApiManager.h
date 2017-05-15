@@ -75,9 +75,6 @@ typedef void (^PYApiActionFailed)(NSError *error);
     PYGlobalDataCache           *_apiCache;
 }
 
-// Get specified api's last request time.
-+ (NSString *)lastRequestTimeForApi:(NSString *)identifier;
-
 // Get the error message in detail
 + (NSString *)errorMessageWithCode:(PYApiErrorCode)code;
 
@@ -86,6 +83,11 @@ typedef void (^PYApiActionFailed)(NSError *error);
 
 // Set Default Error Handler
 + (void)defaultFailedHandler:(PYApiActionFailed)failed;
+
+// Set 304 Request Header Field
++ (void)setNotModifiedRequestHeaderField:(NSString *)field;
+// Set 304 Check Response Header Field
++ (void)setNotModifiedResponseHeaderField:(NSString *)field;
 
 @end
 

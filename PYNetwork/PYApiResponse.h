@@ -50,6 +50,7 @@
 
 @interface PYApiResponse : NSObject
 
+@property (nonatomic, assign)   NSInteger       statusCode;
 @property (nonatomic, assign)   NSInteger       errorCode;
 @property (nonatomic, copy)     NSString        *errorMessage;
 @property (nonatomic, readonly) NSError         *error;

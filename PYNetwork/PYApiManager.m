@@ -55,6 +55,8 @@ static BOOL _isDebug = NO;
 @interface PYApiManager ()
 {
     PYApiActionFailed       _defaultFailed;
+    NSString                *_304RequestField;
+    NSString                *_304ResponseField;
 }
 @end
 
@@ -65,13 +67,16 @@ static BOOL _isDebug = NO;
 @property (nonatomic, readonly) NSOperationQueue        *apiOpQueue;
 
 // Update the modified time
-- (void)updateModifiedTime:(NSString *)modifyInfo forIdentifier:(NSString *)reqIdentifier;
+- (void)updateModifiedField:(NSString *)modifyInfo forIdentifier:(NSString *)reqIdentifier;
 
 // Generate error object
 + (NSError *)apiErrorWithCode:(PYApiErrorCode)code;
 
 // To invoke default failed handler
 + (void)onRequestFailed:(NSError *)error;
+
+// Get specified api's last request time.
++ (NSString *)lastRequest304FieldForApi:(NSString *)identifier;
 
 @end
 
@@ -91,20 +96,30 @@ PYSingletonDefaultImplementation
         _apiCache = [PYGlobalDataCache gdcWithIdentify:@"com.ipy.network.apicache"];
         
         _defaultFailed = nil;
+        _304RequestField = @"Last-Modified-Since";
+        _304ResponseField = @"";
     }
     return self;
+}
+
+// Set 304 Request Header Field
++ (void)setNotModifiedRequestHeaderField:(NSString *)field
+{
+    PYSingletonLock
+    [PYApiManager shared]->_304RequestField = [field copy];
+    PYSingletonUnLock
+}
+// Set 304 Check Response Header Field
++ (void)setNotModifiedResponseHeaderField:(NSString *)field
+{
+    PYSingletonLock
+    [PYApiManager shared]->_304ResponseField = [field copy];
+    PYSingletonUnLock
 }
 
 + (void)enableDebug:(BOOL)enable
 {
     _isDebug = enable;
-}
-
-+ (NSString *)lastRequestTimeForApi:(NSString *)identifier
-{
-    PYSingletonLock
-    return [[PYApiManager shared]->_apiCache objectForKey:identifier];
-    PYSingletonUnLock
 }
 
 + (NSString *)errorMessageWithCode:(PYApiErrorCode)code
@@ -192,11 +207,11 @@ PYSingletonDefaultImplementation
                 break;
             }
             if ( _req.containsModifiedSinceFlag ) {
-                NSString *_lastModifyTimeInfo =
-                [PYApiManager lastRequestTimeForApi:_requestIdentifier];
-                if ( [_lastModifyTimeInfo length] > 0 ) {
-                    [_urlReq addValue:_lastModifyTimeInfo
-                   forHTTPHeaderField:@"Last-Modified-Since"];
+                NSString *_lastModifyInfo =
+                [PYApiManager lastRequest304FieldForApi:_requestIdentifier];
+                if ( [_lastModifyInfo length] > 0 ) {
+                    [_urlReq addValue:_lastModifyInfo
+                   forHTTPHeaderField:[PYApiManager shared]->_304RequestField];
                 }
             }
             
@@ -303,47 +318,49 @@ PYSingletonDefaultImplementation
             if ( _shouldTryNextDomain == YES ) continue;
             if ( _onErrorOccured == YES ) break;
             
+            // Set Status Code
+            _resp.statusCode = _response.statusCode;
+            
             // Update modified time
-            NSString *_lastModifiedDateString = @"";
-            NSString *_date = @"";
-            for ( NSString *_headKey in _response.allHeaderFields ) {
-                if ( [[_headKey lowercaseString] isEqualToString:@"last-modified"] ) {
-                    _lastModifiedDateString = [_response.allHeaderFields objectForKey:_headKey];
-                    //continue;
-                }
-                if ( [[_headKey lowercaseString] isEqualToString:@"date"] ) {
-                    _date = [_response.allHeaderFields objectForKey:_headKey];
-                    //continue;
-                }
-                if ( [_lastModifiedDateString length] > 0 && [_date length] > 0 ) break;
+            NSString *_lastModifiedField = @"";
+            NSString *_304respField = [PYApiManager shared]->_304ResponseField;
+            if ( [_304respField length] > 0 ) {
+                _lastModifiedField = [_response.allHeaderFields objectForKey:_304respField];
             }
-            if ( [_date length] > 0 ) {
-                _lastModifiedDateString = _date;
-            }
-            if ( [_lastModifiedDateString length] > 0 ) {
+            if ( [_lastModifiedField length] > 0 ) {
                 [[PYApiManager shared]
-                 updateModifiedTime:_lastModifiedDateString
+                 updateModifiedField:_lastModifiedField
                  forIdentifier:_requestIdentifier];
             }
             
             if ( _isDebug ) {
-                NSString *_sBody = [[NSString alloc] initWithData:_data encoding:NSUTF8StringEncoding];
-                BEGIN_MAINTHREAD_INVOKE
-                ALog(@"Response: \n%@", _sBody);
-                END_MAINTHREAD_INVOKE
+                if ( _resp.statusCode != 304 ) {
+                    NSString *_sBody = [[NSString alloc] initWithData:_data encoding:NSUTF8StringEncoding];
+                    BEGIN_MAINTHREAD_INVOKE
+                    ALog(@"Response: \n%@", _sBody);
+                    END_MAINTHREAD_INVOKE
+                } else {
+                    BEGIN_MAINTHREAD_INVOKE
+                    ALog(@"Response get 304");
+                    END_MAINTHREAD_INVOKE
+                }
             }
 
             // Parse the data
             @try {
-                if ( [_resp parseBodyWithData:_data] ) {
-                    BEGIN_MAINTHREAD_INVOKE
-                    if ( success ) success ( _resp );
-                    END_MAINTHREAD_INVOKE
+                if ( _resp.statusCode == 304 ) {
+                    if ( success ) success(_resp);
                 } else {
-                    BEGIN_MAINTHREAD_INVOKE
-                    if ( failed ) failed ( _resp.error );
-                    else [PYApiManager onRequestFailed:_resp.error];
-                    END_MAINTHREAD_INVOKE
+                    if ( [_resp parseBodyWithData:_data] ) {
+                        BEGIN_MAINTHREAD_INVOKE
+                        if ( success ) success ( _resp );
+                        END_MAINTHREAD_INVOKE
+                    } else {
+                        BEGIN_MAINTHREAD_INVOKE
+                        if ( failed ) failed ( _resp.error );
+                        else [PYApiManager onRequestFailed:_resp.error];
+                        END_MAINTHREAD_INVOKE
+                    }
                 }
             } @catch ( NSException *ex ) {
                 ALog(@"%@\n%@", ex.reason, ex.callStackSymbols);
@@ -363,8 +380,15 @@ PYSingletonDefaultImplementation
 @dynamic apiOpQueue;
 - (NSOperationQueue *)apiOpQueue { return _apiOpQueue; }
 
++ (NSString *)lastRequest304FieldForApi:(NSString *)identifier
+{
+    PYSingletonLock
+    return [[PYApiManager shared]->_apiCache objectForKey:identifier];
+    PYSingletonUnLock
+}
+
 // Update the modified time
-- (void)updateModifiedTime:(NSString *)modifyInfo forIdentifier:(NSString *)reqIdentifier
+- (void)updateModifiedField:(NSString *)modifyInfo forIdentifier:(NSString *)reqIdentifier
 {
     PYSingletonLock
     [_apiCache setObject:modifyInfo forKey:reqIdentifier];
