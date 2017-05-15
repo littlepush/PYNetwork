@@ -54,9 +54,14 @@ static BOOL _isDebug = NO;
 
 @interface PYApiManager ()
 {
-    PYApiActionFailed       _defaultFailed;
-    NSString                *_304RequestField;
-    NSString                *_304ResponseField;
+    // The async operation queue.
+    NSOperationQueue            *_apiOpQueue;
+    // API last request info cache.
+    PYGlobalDataCache           *_apiCache;
+    PYApiActionFailed           _defaultFailed;
+    NSString                    *_304RequestField;
+    NSString                    *_304ResponseField;
+    NSURLRequestCachePolicy     _cachePolicy;
 }
 @end
 
@@ -65,6 +70,9 @@ static BOOL _isDebug = NO;
 + (instancetype)shared;
 // The operation queue.
 @property (nonatomic, readonly) NSOperationQueue        *apiOpQueue;
+
+// Default Cache Policy
+@property (nonatomic, readonly) NSURLRequestCachePolicy cachePolicy;
 
 // Update the modified time
 - (void)updateModifiedField:(NSString *)modifyInfo forIdentifier:(NSString *)reqIdentifier;
@@ -98,6 +106,7 @@ PYSingletonDefaultImplementation
         _defaultFailed = nil;
         _304RequestField = @"Last-Modified-Since";
         _304ResponseField = @"";
+        _cachePolicy = NSURLRequestUseProtocolCachePolicy;
     }
     return self;
 }
@@ -114,6 +123,13 @@ PYSingletonDefaultImplementation
 {
     PYSingletonLock
     [PYApiManager shared]->_304ResponseField = [field copy];
+    PYSingletonUnLock
+}
+// Set Default Request Cache Policy
++ (void)setRequestCachePolicy:(NSURLRequestCachePolicy)cachePolicy
+{
+    PYSingletonLock
+    [PYApiManager shared]->_cachePolicy = cachePolicy;
     PYSingletonUnLock
 }
 
@@ -212,6 +228,7 @@ PYSingletonDefaultImplementation
                 if ( [_lastModifyInfo length] > 0 ) {
                     [_urlReq addValue:_lastModifyInfo
                    forHTTPHeaderField:[PYApiManager shared]->_304RequestField];
+                    _urlReq.cachePolicy = [PYApiManager shared]->_cachePolicy;
                 }
             }
             
@@ -379,6 +396,9 @@ PYSingletonDefaultImplementation
 
 @dynamic apiOpQueue;
 - (NSOperationQueue *)apiOpQueue { return _apiOpQueue; }
+
+@dynamic cachePolicy;
+- (NSURLRequestCachePolicy)cachePolicy { return _cachePolicy; }
 
 + (NSString *)lastRequest304FieldForApi:(NSString *)identifier
 {

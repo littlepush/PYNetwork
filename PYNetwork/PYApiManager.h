@@ -68,12 +68,6 @@ typedef void (^PYApiActionSuccess)(id response);
 typedef void (^PYApiActionFailed)(NSError *error);
 
 @interface PYApiManager : NSObject
-{
-    // The async operation queue.
-    NSOperationQueue            *_apiOpQueue;
-    // API last request info cache.
-    PYGlobalDataCache           *_apiCache;
-}
 
 // Get the error message in detail
 + (NSString *)errorMessageWithCode:(PYApiErrorCode)code;
@@ -88,6 +82,9 @@ typedef void (^PYApiActionFailed)(NSError *error);
 + (void)setNotModifiedRequestHeaderField:(NSString *)field;
 // Set 304 Check Response Header Field
 + (void)setNotModifiedResponseHeaderField:(NSString *)field;
+
+// Set Default Request Cache Policy
++ (void)setRequestCachePolicy:(NSURLRequestCachePolicy)cachePolicy;
 
 @end
 
@@ -113,6 +110,9 @@ __VA_ARGS__                                                                 \
                                onSuccess:(PYApiActionSuccess)success        \
                                 onFailed:(PYApiActionFailed)failed;         \
 + (void)invoke##api_name##WithParameters:(NSDictionary *)params             \
+                                  onInit:(PYApiActionInit)init              \
+                               onSuccess:(PYApiActionSuccess)success;       \
++ (void)invoke##api_name##WithParameters:(NSDictionary *)params             \
                                onSuccess:(PYApiActionSuccess)success;       \
 @end
 
@@ -135,6 +135,16 @@ withParameters:params                                   \
         onInit:init                                     \
      onSuccess:success                                  \
       onFailed:failed];                                 \
+}                                                       \
++ (void)invoke##api_name##WithParameters:(NSDictionary *)params\
+                                  onInit:(PYApiActionInit)init \
+                               onSuccess:(PYApiActionSuccess)success{\
+    [PYApiManager                                       \
+     invokeApi:@#api_name                               \
+withParameters:params                                   \
+        onInit:init                                     \
+     onSuccess:success                                  \
+      onFailed:nil];                                    \
 }                                                       \
 + (void)invoke##api_name##WithParameters:(NSDictionary *)params\
                                onSuccess:(PYApiActionSuccess)success{\
