@@ -366,7 +366,9 @@ PYSingletonDefaultImplementation
             // Parse the data
             @try {
                 if ( _resp.statusCode == 304 ) {
+                    BEGIN_MAINTHREAD_INVOKE
                     if ( success ) success(_resp);
+                    END_MAINTHREAD_INVOKE
                 } else {
                     if ( [_resp parseBodyWithData:_data] ) {
                         BEGIN_MAINTHREAD_INVOKE
