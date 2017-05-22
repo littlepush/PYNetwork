@@ -182,7 +182,8 @@
                        dataUsingEncoding:NSUTF8StringEncoding]];
     // File
     [_body appendData:[[NSString
-                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\n", key, filename]
+                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\n",
+                        key, [filename lastPathComponent]]
                        dataUsingEncoding:NSUTF8StringEncoding]];
     [_body appendData:[@"Content-Type: application/octet-stream\r\nContent-Transfer-Encoding: binary\r\n\r\n"
                        dataUsingEncoding:NSUTF8StringEncoding]];
@@ -202,7 +203,8 @@
                        dataUsingEncoding:NSUTF8StringEncoding]];
     // Image
     [_body appendData:[[NSString
-                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\n", key, filename]
+                        stringWithFormat:@"Content-Disposition: form-data; name=\"%@\"; filename=\"%@\"\r\n",
+                        key, [filename lastPathComponent]]
                        dataUsingEncoding:NSUTF8StringEncoding]];
     [_body appendData:[@"Content-Type: image/jpeg\r\nContent-Transfer-Encoding: binary\r\n\r\n"
                        dataUsingEncoding:NSUTF8StringEncoding]];
