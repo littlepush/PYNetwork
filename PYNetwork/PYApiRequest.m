@@ -131,6 +131,9 @@
 // The request manager will maintain a cache to log all invocation data.
 @synthesize containsModifiedSinceFlag;
 
+//  Callback use Main Thread, default is YES
+@synthesize callBackUseMainThread;
+
 // Should be overwrite by the sub-class
 - (void)initializeDomainSwitcher
 {
@@ -230,6 +233,7 @@
     self = [super init];
     if ( self ) {
         self.containsModifiedSinceFlag = YES;
+        self.callBackUseMainThread = YES;
         [self initializeDomainSwitcher];
         [self initializeUrlSchema];
         _isNeedDomainSwitcher = ([_urlString rangeOfString:@"://"].location == NSNotFound);

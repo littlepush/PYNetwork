@@ -99,6 +99,7 @@ PYSingletonDefaultImplementation
     if ( self ) {
         _apiOpQueue = [NSOperationQueue object];
         [_apiOpQueue setMaxConcurrentOperationCount:10];
+        _apiOpQueue.qualityOfService = NSQualityOfServiceBackground;
         
         // Initialize the api cache to store the request info.
         _apiCache = [PYGlobalDataCache gdcWithIdentify:@"com.ipy.network.apicache"];
@@ -266,15 +267,15 @@ PYSingletonDefaultImplementation
                 
                 if ( _response.statusCode >= 400 ) {
                     // Server error
-                    BEGIN_MAINTHREAD_INVOKE
-                    if ( _isDebug ) {
-                        ALog(@"Request Failed: %d", (int)_response.statusCode);
-                    }
                     NSError* _err = [self
                                      errorWithCode:(int)_response.statusCode
                                      message:[[NSString alloc]
                                               initWithData:_data
                                               encoding:NSUTF8StringEncoding]];
+                    BEGIN_MAINTHREAD_INVOKE
+                    if ( _isDebug ) {
+                        ALog(@"Request Failed: %d", (int)_response.statusCode);
+                    }
                     if ( failed ) failed( _err );
                     else [PYApiManager onRequestFailed:_err];
                     END_MAINTHREAD_INVOKE
@@ -290,10 +291,10 @@ PYSingletonDefaultImplementation
                         }
                     }
                     if ( [_location length] == 0 ) {
-                        BEGIN_MAINTHREAD_INVOKE
                         NSError *_err = [self
                                          errorWithCode:(int)_response.statusCode
                                          message:@"No validate location to redirect."];
+                        BEGIN_MAINTHREAD_INVOKE
                         if ( failed ) failed( _err );
                         else [PYApiManager onRequestFailed:_err];
                         END_MAINTHREAD_INVOKE
@@ -366,14 +367,26 @@ PYSingletonDefaultImplementation
             // Parse the data
             @try {
                 if ( _resp.statusCode == 304 ) {
-                    BEGIN_MAINTHREAD_INVOKE
-                    if ( success ) success(_resp);
-                    END_MAINTHREAD_INVOKE
+                    if ( success ) {
+                        if ( _req.callBackUseMainThread ) {
+                            BEGIN_MAINTHREAD_INVOKE
+                            success( _resp );
+                            END_MAINTHREAD_INVOKE
+                        } else {
+                            success( _resp );
+                        }
+                    }
                 } else {
                     if ( [_resp parseBodyWithData:_data] ) {
-                        BEGIN_MAINTHREAD_INVOKE
-                        if ( success ) success ( _resp );
-                        END_MAINTHREAD_INVOKE
+                        if ( success ) {
+                            if ( _req.callBackUseMainThread ) {
+                                BEGIN_MAINTHREAD_INVOKE
+                                success( _resp );
+                                END_MAINTHREAD_INVOKE
+                            } else {
+                                success( _resp );
+                            }
+                        }
                     } else {
                         BEGIN_MAINTHREAD_INVOKE
                         if ( failed ) failed ( _resp.error );

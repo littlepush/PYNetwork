@@ -112,6 +112,11 @@
  */
 @property (nonatomic, assign)   BOOL                    containsModifiedSinceFlag;
 
+/*
+ Callback use Main Thread, default is YES
+ */
+@property (nonatomic, assign)   BOOL                    callBackUseMainThread;
+
 /*! 
  Replace the url schema with specified parameters
  */
